@@ -1,0 +1,214 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Trabalho Prático de TECMUL</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+/*Trabalho realizado por:
+    Nuno Ferreira nº24651
+    João Martins nº24918
+*/
+
+var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 500 },
+            debug: false
+        }
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+var score=0;
+var x=0;
+var y=0;
+var gameOver=false;
+var j=1;
+var game = new Phaser.Game(config);
+var speed = -150;
+var n = 1;
+var groundSpeed = 1.03;
+var bg_2Speed = 0.5;
+
+
+function preload ()
+{
+ //carregar os assets   
+    this.load.image("ground", "assetsTP/ground.png");
+    this.load.image('bg_2','assetsTP/bg-2.png')
+    this.load.spritesheet('dude', 'assetsTP/personagem1.png', { frameWidth: 85, frameHeight: 95 });
+    this.load.spritesheet('dude2', 'assetsTP/personagem.png', { frameWidth: 92.5, frameHeight: 105 });
+    this.load.image("ground2", "assetsTP/platform.png");
+    this.load.image("bush1","assetsTP/bush1.png",{frameWidth:16,frameHeight:15});
+    this.load.image("bush","assetsTP/bush.png",{frameWidth:16,frameHeight:30});
+}
+
+function create ()
+{
+    //uma plataforma para o jogador ficar em cima
+    platform = this.physics.add.staticGroup();
+    platform.create(300, 680, 'ground2').setScale(6).refreshBody();
+    
+    //o fundo
+    bg_2 = this.add.tileSprite(0, 0, 1600, 1200, "bg_2").setScale(2.5);
+    bg_2.setOrigin(0, 0);
+    
+    //o chão
+    ground = this.add.tileSprite(0,590, 1600, 48, "ground");
+   
+    //o jogador
+    player = this.physics.add.sprite(50, 450, 'dude');
+    player.setCollideWorldBounds(true);
+    player.setSize(35,95);
+    this.physics.add.collider(player,platform);
+    
+    //obstaculos
+    obstacle=this.physics.add.image(825,532,"bush").setScale(3);
+    obstacle1=this.physics.add.image(825,532,"bush1").setScale(3);
+    this.physics.add.collider(platform,obstacle1);
+    this.physics.add.collider(player,obstacle1,hitObstacle,null,this);
+    this.physics.add.collider(platform,obstacle);
+    this.physics.add.collider(player,obstacle,hitObstacle,null,this);
+    
+//animações para saltar e andar
+    this.anims.create({
+        key: 'right',
+        frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 6 }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'jump',
+        frames: this.anims.generateFrameNumbers('dude2',{start:0,end:1}),
+        framerate: 10,
+        repeat: 0
+    })
+
+    
+    cursors = this.input.keyboard.createCursorKeys();
+    scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FFF' });
+}
+
+function update ()
+{
+
+    if(gameOver){
+
+
+    return;
+    }
+
+    //aumentar a velocidade do jogo a certo score
+    if(score == 100 * n){
+        if(score>=700){
+            j+=0.002;
+            speed =  speed * j;
+            groundSpeed = groundSpeed * j;
+            bg_2Speed = bg_2Speed * j;
+            obstacle.setVelocityX(speed);
+            obstacle1.setVelocityX(speed);
+            //bg_2.tilePositionX +=bg_2Speed;
+            //ground.tilePositionX += groundSpeed;
+            n+=1;
+        }
+        else{
+            j+=0.05;
+            speed =  speed * j;
+            groundSpeed = groundSpeed * j;
+            bg_2Speed = bg_2Speed * j;
+            obstacle.setVelocityX(speed);
+            obstacle1.setVelocityX(speed);
+            //bg_2.tilePositionX +=bg_2Speed;
+            //ground.tilePositionX += groundSpeed;
+            n+=1;
+        }
+    }
+    else{
+        //bg_2.tilePositionX +=bg_2Speed;
+        //ground.tilePositionX += groundSpeed;
+        y+=1;
+        if(y==50){
+        obstacle1.setVelocityX(speed);
+        }
+        if(y==600){
+        obstacle.setVelocityX(speed);
+        y=0;
+        }
+    }
+
+
+    //spawn aleatorio
+    if(obstacle1.x  <-100){
+        obstacle1.setX(Phaser.Math.Between(800,1000));
+    }
+    if(obstacle.x < -100){
+        obstacle.setX(Phaser.Math.Between(800,1000));
+    }
+
+
+
+    //animação de andar para apenas quando está no chão
+    if(player.body.touching.down)
+    {
+        player.anims.play('right', true)
+    }
+
+    //saltar
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.setVelocityY(-500);
+        player.anims.play('jump',true);
+    }
+
+    if (cursors.down.isDown)
+    {
+        player.setVelocityY(1800);
+    }
+    //pontuação
+    x+=1;
+    if(x==80){
+
+        score += 10;
+        scoreText.setText('Score: ' + score);
+        x=0;
+    }
+
+    //mexer o fundo e o chão para dar o efeito de movimento
+}
+
+function generateRandomIntegerInRange(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function hitObstacle (player, obstacle)
+{
+  
+    this.physics.pause();
+    player.setTint(0xff0000);
+    player.anims.stop(null,true);
+    gameOver = true;
+}
+
+</script>
+
+</body>
+</html>
